@@ -6,6 +6,7 @@ find_package(OpenCV REQUIRED)
 find_package(PCL 1.8 REQUIRED)
 
 # 実行ファイルを追加
+add_executable(multi_pcd_ply_viewer src/multi_pcd_ply_viewer.cpp)
 add_executable(remove_ground src/remove_ground.cpp)
 add_executable(rotate_cloud src/rotate_cloud.cpp)
 
@@ -13,6 +14,7 @@ add_executable(rotate_cloud src/rotate_cloud.cpp)
 #target_link_libraries(pcl_example ${OpenCV_LIBS})
 
 # PCLライブラリをリンク
+target_link_libraries(multi_pcd_ply_viewer ${PCL_LIBRARIES})
 target_link_libraries(remove_ground ${PCL_LIBRARIES})
 target_link_libraries(rotate_cloud ${PCL_LIBRARIES})
 

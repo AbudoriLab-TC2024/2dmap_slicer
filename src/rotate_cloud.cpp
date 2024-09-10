@@ -1,7 +1,9 @@
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
 #include <Eigen/Dense>
+#include <filesystem>
 #include <iostream>
 
 int main(int argc, char** argv)
@@ -13,13 +15,31 @@ int main(int argc, char** argv)
     }
 
     // 1. 点群を読み込む
+    std::string filename = argv[1];
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-    if (pcl::io::loadPCDFile<pcl::PointXYZ>(argv[1], *cloud) == -1)
+    if (filename.substr(filename.find_last_of(".") + 1) == "ply")
     {
-        PCL_ERROR("Couldn't read file %s\n", argv[1]);
+        if (pcl::io::loadPLYFile<pcl::PointXYZ>(filename, *cloud) == -1)
+        {
+            std::cerr << "Error loading PLY file: " << filename << std::endl;
+            return -1;
+        }
+    }
+    else if (filename.substr(filename.find_last_of(".") + 1) == "pcd")
+    {
+        if (pcl::io::loadPCDFile<pcl::PointXYZ>(filename, *cloud) == -1)
+        {
+            std::cerr << "Error loading PCD file: " << filename << std::endl;
+            return -1;
+        }
+    }
+    else
+    {
+        std::cerr << "Unsupported file format. Use .ply or .pcd files." << std::endl;
         return -1;
     }
+
+    std::cout << "Loaded point cloud with " << cloud->width * cloud->height << " points." << std::endl;
 
     // 2. コマンドライン引数から回転角度を取得
     float roll_angle = std::stof(argv[2]) * M_PI / 180.0f;  // Roll angle in radians
@@ -43,7 +63,22 @@ int main(int argc, char** argv)
     pcl::transformPointCloud(*rotated_cloud, *rotated_cloud, transform_pitch.matrix());
 
     // 6. 回転後の点群を保存
-    pcl::io::savePCDFileASCII("rotated_cloud.pcd", *rotated_cloud);
+    // 保存するディレクトリを指定
+    std::string dir_path = "../output_cloud";
+
+    // ディレクトリが存在しない場合は作成
+    if (!std::filesystem::exists(dir_path)) {
+        if (std::filesystem::create_directory(dir_path)) {
+            std::cout << "Directory created: " << dir_path << std::endl;
+        } else {
+            std::cerr << "Failed to create directory: " << dir_path << std::endl;
+            return -1;
+        }
+    } else {
+        std::cout << "save into " << dir_path << std::endl;
+    }
+
+    pcl::io::savePCDFileASCII("../output_cloud/rotated_cloud.pcd", *rotated_cloud);
 
     // 7. 可視化
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));

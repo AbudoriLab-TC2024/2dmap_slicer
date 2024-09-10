@@ -4,6 +4,7 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <filesystem>
 #include <iostream>
 #include <string>
 
@@ -19,6 +20,7 @@ int main(int argc, char** argv)
     float ground_normal_z = std::stof(argv[2]);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
+    // PCDかPLYファイルをコマンドライン引数から読み込み
     if (filename.substr(filename.find_last_of(".") + 1) == "ply")
     {
         if (pcl::io::loadPLYFile<pcl::PointXYZ>(filename, *cloud) == -1)
@@ -53,6 +55,8 @@ int main(int argc, char** argv)
     ne.compute(*normals);
 
     // 法線ベクトルが水平に近い点を除去
+    // 今のバージョンでは、Z成分をコマンドライン引数から指定する
+    // 水平成分の点群はZ成分のしきい値以上のものを抽出する
     pcl::PointIndices::Ptr non_ground_indices(new pcl::PointIndices);
     pcl::PointIndices::Ptr ground_indices(new pcl::PointIndices);  // 除去された点群のインデックス
     for (size_t i = 0; i < normals->points.size(); ++i)
@@ -81,10 +85,25 @@ int main(int argc, char** argv)
     std::cout << "PointCloud after removing near-horizontal normals: " << non_ground_cloud->width * non_ground_cloud->height << " points." << std::endl;
 
     // 結果の保存
-    pcl::io::savePCDFileASCII("../pcds/non_ground_cloud.pcd", *non_ground_cloud);
-    std::cout << "Filtered point cloud saved as 2dmap_slicer/pcds/non_ground_cloud.pcd" << std::endl;
-    pcl::io::savePCDFileASCII("../pcds/ground_cloud.pcd", *ground_cloud);
-    std::cout << "Ground point cloud saved as 2dmap_slicer/pcds/ground_cloud.pcd" << std::endl;
+    // 保存するディレクトリを指定
+    std::string dir_path = "../output_cloud";
+
+    // ディレクトリが存在しない場合は作成
+    if (!std::filesystem::exists(dir_path)) {
+        if (std::filesystem::create_directory(dir_path)) {
+            std::cout << "Directory created: " << dir_path << std::endl;
+        } else {
+            std::cerr << "Failed to create directory: " << dir_path << std::endl;
+            return -1;
+        }
+    } else {
+        std::cout << "save into " << dir_path << std::endl;
+    }
+
+    pcl::io::savePCDFileASCII("../output_cloud/non_ground_cloud.pcd", *non_ground_cloud);
+    std::cout << "Filtered point cloud saved as 2dmap_slicer/output_cloud/non_ground_cloud.pcd" << std::endl;
+    pcl::io::savePCDFileASCII("../output_cloud/ground_cloud.pcd", *ground_cloud);
+    std::cout << "Ground point cloud saved as 2dmap_slicer/output_cloud/ground_cloud.pcd" << std::endl;
 
     // 可視化の設定
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
